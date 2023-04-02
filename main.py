@@ -21,9 +21,9 @@ async def startup_event():
     logging.info("loading vectorstore")
     global vectorstore
     vectorstore = [
-        {'vectorstore': None, 'title': 'Handbook', 'description': 'The handbook has all the rules and guidelines related to Sacramento State. It is only updated once a year.'},
-        {'vectorstore': None, 'title': 'Website', 'description': 'The website has any general info relating to Sacramento State that likely is not in the catalog or handbook'},
-        {'vectorstore': None, 'title': 'Catalog', 'description': 'The Catalog has all the class info, major info, and other degree info related to Sacramento State.'},
+        {'vectorstore': None, 'title': 'Handbook', 'description': 'The handbook has all the rules and guidelines related to Sacramento State. It is only updated once a year. Rules for conduct on campus. Academic calendar. Policies for student organizations. Campus safety guidelines.'},
+        {'vectorstore': None, 'title': 'Website', 'description': 'The website has any general info relating to Sacramento State that likely is not in the catalog or handbook. Campus news and events. Information for prospective students. Athletics schedules and scores.'},
+        {'vectorstore': None, 'title': 'Catalog', 'description': 'The Catalog has all the class info, major info, and other degree info related to Sacramento State. List of majors and minors. Course descriptions and requirements. General education requirements. Graduation requirements.'},
     ]
     with open("vectorstore_csus_handbook.pkl", "rb") as f:
         vectorstore[0]['vectorstore'] = pickle.load(f)

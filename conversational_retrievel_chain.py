@@ -14,7 +14,7 @@ from langchain.chains import ConversationalRetrievalChain
 def _format_chat_history(chat_history: List[Tuple[str, str]]) -> str:
     formatted = ""
     for human, ai in chat_history:
-        formatted += f"\nHuman: {human}\nAssistant: {ai}"
+        formatted += f"\nPrompt: {human}\nResponse: {ai}"
     return formatted
 
 class AdvanceConversationalRetrievalChain(Chain, BaseModel):
@@ -70,20 +70,32 @@ class AdvanceConversationalRetrievalChain(Chain, BaseModel):
         return self._trim_docs_to_token_limit(docs)
 
     def _call(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
+        new_inputs = inputs.copy()
+
         question = inputs["question"]
         get_chat_history = self.get_chat_history or _format_chat_history
         chat_history_str = get_chat_history(inputs["chat_history"])
+        new_inputs["chat_history"] = chat_history_str
 
         new_question = question if not chat_history_str else self.question_generator.run(
             question=question, chat_history=chat_history_str
         )
+        new_question = new_question.replace('Standalone Prompt: ', '')
 
-        docs = self._get_docs(new_question, inputs)
-        new_inputs = inputs.copy()
         new_inputs["question"] = new_question
-        new_inputs["chat_history"] = chat_history_str
+        print('Question:', new_question)
+
+        titles = self.vectorstore_selector_chain.run(
+            question=new_question
+        )
+        new_inputs['titles'] = titles
+        print('Titles:', titles)
+
+        docs = self._get_docs(new_question, new_inputs)
+        print('Doc:', docs[0] if len(docs) > 0 else 'None')
+
         answer, _ = self.combine_docs_chain.combine_docs(docs, **new_inputs)
-        
+
         if self.return_source_documents:
             return {self.output_key: answer, "source_documents": docs}
         else:
@@ -100,8 +112,10 @@ class AdvanceConversationalRetrievalChain(Chain, BaseModel):
         new_question = question if not chat_history_str else await self.question_generator.arun(
             question=question, chat_history=chat_history_str
         )
+        new_question = new_question.replace('Standalone Prompt: ', '')
+
         new_inputs["question"] = new_question
-        print('Question:', new_question)
+        print('Rephrased Question:', new_question)
 
         titles = await self.vectorstore_selector_chain.arun(
             question=new_question
@@ -110,7 +124,7 @@ class AdvanceConversationalRetrievalChain(Chain, BaseModel):
         print('Titles:', titles)
 
         docs = self._get_docs(new_question, new_inputs)
-        print('Doc:', docs[0])
+        print('Doc:', docs[0] if len(docs) > 0 else 'None')
 
         answer, _ = await self.combine_docs_chain.acombine_docs(docs, **new_inputs)
 

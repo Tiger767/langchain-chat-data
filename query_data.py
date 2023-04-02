@@ -14,7 +14,7 @@ from conversational_retrievel_chain import AdvanceConversationalRetrievalChain
 from retriever import VectorStoresRetriever
 
 
-def create_prompt_templates(vectorstores: List[Dict[str, Any]]) -> Tuple[ChatPromptTemplate, ChatPromptTemplate, ChatPromptTemplate]:
+def create_prompt_templates(vectorstores: List[Dict[str, Any]], answer_context='Sacramento State') -> Tuple[ChatPromptTemplate, ChatPromptTemplate, ChatPromptTemplate]:
     """
     Create and return the prompt templates for standalone question, vectorstore selector, and answer.
 
@@ -24,37 +24,63 @@ def create_prompt_templates(vectorstores: List[Dict[str, Any]]) -> Tuple[ChatPro
     Returns:
         A tuple containing the standalone question prompt template, vectorstore selector prompt template, and answer prompt template.
     """
+
+    """
+    From now on, you are a prompt reformer that takes a relevant context from previous conversations and turns a prompt into a fully contextualized and standalone prompt. You do not respond to the prompt, but only rewrite it using any relevant information found in the chat history. Furthermore, if there is no relevant information in previous conversations or you are unsure on how to rewrite the prompt, just restate the prompt verbatim. Do not say anything else besides to fill-out the prompt and do not ask the user any questions.
+
+    Your response should always look like this:
+    Standalone Prompt: rewritten standalone prompt
+
+    If you understand and will do all the above, say Yes and nothing else.
+
+    Chat History:
+    Prompt: Can you tell me about the masters program at sac state?
+    Response: Yes, Sacramento State offers a Master of Fine Arts (MFA) program that prepares students for admission into an MFA program at another institution. The program emphasizes the integration of professional practice with historical and theoretical studies and covers various areas such as ceramics, drawing, jewelry, metalsmithing, new media, painting, photography, printmaking, and sculpture. Admission to the program is competitive, and a limited number of students are admitted each year. Additionally, Sacramento State offers an Executive Master of Business Administration (EBMA) program for working professionals who want to advance their careers in a flexible and supportive environment.
+
+    Prompt: Tell me about the csc masters
+    """
+
+
+    titles = ", ".join(vectorstore['title'] for vectorstore in vectorstores)
     all_templates = [
         # Contextualize Prompt Templates
         [
             # System Prompt
-            ("SystemMessagePromptTemplate", "You are a prompt reformer that takes relvant context from previous messages and turns a prompt into fully contextualized and stand alone prompt."),
-            
-            # Example 1
-            ("HumanMessagePromptTemplate", "Given the following conversation and prompt, rephrase the prompt to be a standalone contextualized prompt. Do not try to respond to the prompt or answer any questions. If the prompt is already standalone or does not relate to the previous conversation, just restate the text following Prompt.\n\nPrevious Messages:\nHuman: I really like to eat at the Fast Food Store near my house.\nAssistant: It's great that you enjoy eating at the Fast Food Store near your house! Fast food restaurants can be a convenient and tasty option for many people. However, it's important to remember that eating fast food regularly can have negative health effects. Fast food is often high in calories, fat, and sodium, and low in important nutrients like fiber and vitamins.\n\nPrompt: It really is the best place to eat."),
-            ("AIMessagePromptTemplate", "The Fast Food Store near my house is the best place to eat."),
-            
-            # Example 2
-            ("HumanMessagePromptTemplate", "Given the following conversation and prompt, rephrase the prompt to be a standalone contextualized prompt. Do not try to respond to the prompt or answer any questions. If the prompt is already standalone or does not relate to the previous conversation, just restate the text following Prompt.\n\nPrevious Messages:\nHuman: What do you think is the best way to get to the dollar store when I leave in 15 mintues.\nAssistant: Assuming that you have already determined the location of the nearest dollar store, the quickest way to get there in 15 minutes depends on your transportation options and distance.\n\nIf the dollar store is within walking distance, you could walk or jog there if you are comfortable doing so and have appropriate footwear. Alternatively, you could take a bike if you have one available and it would be faster than walking.\n\nIf you are unable to walk or bike, you could consider using a ride-sharing service such as Uber or Lyft to get there quickly. If you have a car available, driving may also be an option, but keep in mind that traffic and parking may affect your travel time.\n\nTo ensure you arrive on time, make sure to plan your route ahead of time, factor in any traffic or wait times, and have your payment method ready if using a ride-sharing service.\n\nPrompt: I think I will get there with the first option you provided."),
-            ("AIMessagePromptTemplate", "I think I will get to the dollar store when I leave in 15 mintues with the first option, walking."),
-            
-            # Example 3
-            ("HumanMessagePromptTemplate", "Given the following conversation and prompt, rephrase the prompt to be a standalone contextualized prompt. Do not try to respond to the prompt or answer any questions. If the prompt is already standalone or does not relate to the previous conversation, just restate the text following Prompt.\n\nPrevious Messages:\nHuman: I like to program in python, do you think it is a good language?\nAssistant: As an AI language model, I don't have opinions or personal preferences. However, Python is a popular and widely used programming language that has a large and supportive community.\n\nPrompt: Is rock climbing a sport?"),
-            ("AIMessagePromptTemplate", "Is rock climbing a sport?"),
+            #("SystemMessagePromptTemplate", "You are a prompt reformer that takes relvant context from previous messages and turns a prompt into fully contextualized and stand alone prompt."),
+            ('HumanMessagePromptTemplate', "From now on, you are a prompt reformer that takes a relevant context from previous conversations and turns a prompt into a fully contextualized and standalone prompt. You do this by trying to fill-in all the known what, where, who, when, and why's. You do not respond to the prompt, but only rewrite it using any relevant information found in the chat history. Furthermore, if there is no relevant information in previous conversations or you are unsure on how to rewrite the prompt, just restate the prompt verbatim. Do not say anything else besides to fill-out the prompt and do not ask the user any questions.\n\nYour response should always look like this:\nStandalone Prompt: rewritten standalone prompt\n\nIf you understand and will do all the above, say Yes and nothing else."),
+            ("AIMessagePromptTemplate", "Yes."),
+
+            # Example 1 (verbatim)
+            ("HumanMessagePromptTemplate", "Chat History:\nPrompt: I like to program in python, do you think it is a good language?\nResponse: As an AI language model, I don't have opinions or personal preferences. However, Python is a popular and widely used programming language that has a large and supportive community.\n\nPrompt: Is rock climbing a sport?"),
+            ("AIMessagePromptTemplate", "Standalone Prompt: Is rock climbing a sport?"),
+
+            # Example 2 (context used)
+            ("HumanMessagePromptTemplate", "Chat History:\nPrompt: Can you tell me about the masters program at sac state?\nResponse: Yes, Sacramento State offers a Master of Fine Arts (MFA) program that prepares students for admission into an MFA program at another institution. The program emphasizes the integration of professional practice with historical and theoretical studies and covers various areas such as ceramics, drawing, jewelry, metalsmithing, new media, painting, photography, printmaking, and sculpture. Admission to the program is competitive, and a limited number of students are admitted each year. Additionally, Sacramento State offers an Executive Master of Business Administration (EBMA) program for working professionals who want to advance their careers in a flexible and supportive environment.\n\nPrompt: What about for CSC?"),
+            ("AIMessagePromptTemplate", "Standalone Prompt: Can you provide information about the Computer Science (CSC) Master's program at Sacramento State?"),
 
             # Human Prompt
-            ("HumanMessagePromptTemplate", "Given the following conversation and prompt, rephrase the prompt to be a standalone contextualized prompt. Do not try to respond to the prompt or answer any questions. If the prompt is already standalone or does not relate to the previous conversation, just restate the text following Prompt.\n\nPrevious Messages:\n{chat_history}\n\nPrompt: {question}"),
+            ("HumanMessagePromptTemplate", "Chat History:\n{chat_history}\n\nPrompt: {question}"),
         ],
         # Vectorstore Selector Prompt Template
         [
             # Human Prompt
-            ("HumanMessagePromptTemplate", "Given the following descriptions of each topic, which topics are relevant to the prompt. Topics are broad and contain more information than is listened in the descriptions. Only list the topic names that are relevant to the prompt, avoid any other words. If there are no options related, say None. Minimize explanation.\n\n" + "".join(f"{vectorstore['title']}\n{vectorstore['description']}\n\n" for vectorstore in vectorstores) + "Prompt: {question}"),
+            ("HumanMessagePromptTemplate", "From now on, you lists the appropriate locations (" +
+                                           titles +
+                                           ") of where one could find information relevant to the prompt. You only list the location names that are relevant to the prompt content, avoid any other words. If there are no options related then say None followed by your best guess of the location. Minimize all other verbiage."
+                                           "\n\nBelow are incomplete summaries of what each location stores:\n\n" +
+                                           "".join(f"{vectorstore['title']}\n{vectorstore['description']}\n\n" for vectorstore in vectorstores) +
+                                           "For all messages given, only respond by listing the locations that are most relevant to the prompt. If you understand and will do all the above, say Yes. No matter what do not respond any other way from now on."),
+            ("AIMessagePromptTemplate", "Yes."),
+            ("HumanMessagePromptTemplate", "For the locations " + titles + ", which are most relevant to look up information for the below prompt.\nPrompt: {question}")
         ],
         # Answer Prompt Templates
         [
             # System and Human Prompt
-            ("SystemMessagePromptTemplate", "Use the following pieces of context to respond to the question at the end. If you don't know an answer, just say that you don't know, don't try to make up an answer."),
-            ("HumanMessagePromptTemplate", "Context:\n{context}\n\nPrompt: {question}")
+            #("SystemMessagePromptTemplate", "Use the following pieces of context to respond to the question at the end. If you don't know an answer, just say that you don't know, don't try to make up an answer."),
+            #("SystemMessagePromptTemplate", "Use the following pieces of context to respond to the prompt below. If the context does not help you respond to the prompt, say so and then try to respond anyway."),
+            ("HumanMessagePromptTemplate", f"From now on, you will be a helpful assistant that answers questions related to {answer_context}. You will use provided context gathered from {titles} to do so. If you understand and will do all the above, say Yes."),
+            ("AIMessagePromptTemplate", "Yes, I understand and will do all the above. I'm ready to assist you with any questions related to the provided context."),
+            ("HumanMessagePromptTemplate", "Use the following pieces of context to respond to the prompt below. If the context does not help you respond to the prompt, say so and then try to respond anyway.\n\nContext:\n{context}\n\nPrompt: {question}\n\nResponse:"),
         ]
     ]
     
