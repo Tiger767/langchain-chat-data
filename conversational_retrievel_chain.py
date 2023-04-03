@@ -78,15 +78,15 @@ class AdvanceConversationalRetrievalChain(Chain, BaseModel):
         new_inputs["chat_history"] = chat_history_str
 
         new_question = question if not chat_history_str else self.question_generator.run(
-            question=question, chat_history=chat_history_str
+            question=question, formatted_chat_history=chat_history_str
         )
         new_question = new_question.replace('Standalone Prompt: ', '')
 
-        new_inputs["question"] = new_question
+        new_inputs["formatted_new_question"] = new_question
         print('Question:', new_question)
 
         titles = self.vectorstore_selector_chain.run(
-            question=new_question
+            formatted_new_question=new_question
         )
         new_inputs['titles'] = titles
         print('Titles:', titles)
