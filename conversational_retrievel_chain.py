@@ -19,7 +19,7 @@ def _format_chat_history(chat_history: List[Tuple[str, str]]) -> str:
 
 class AdvanceConversationalRetrievalChain(Chain, BaseModel):
     question_generator: LLMChain
-    vectorstore_selector_chain: LLMChain
+    vectorstore_router_chain: LLMChain
     combine_docs_chain: BaseCombineDocumentsChain
 
     retriever: VectorStoresRetriever
@@ -85,7 +85,7 @@ class AdvanceConversationalRetrievalChain(Chain, BaseModel):
         new_inputs["formatted_new_question"] = new_question
         print('Question:', new_question)
 
-        titles = self.vectorstore_selector_chain.run(
+        titles = self.vectorstore_router_chain.run(
             formatted_new_question=new_question
         )
         new_inputs['titles'] = titles
@@ -117,7 +117,7 @@ class AdvanceConversationalRetrievalChain(Chain, BaseModel):
         new_inputs["question"] = new_question
         print('Rephrased Question:', new_question)
 
-        titles = await self.vectorstore_selector_chain.arun(
+        titles = await self.vectorstore_router_chain.arun(
             question=new_question
         )
         new_inputs['titles'] = titles

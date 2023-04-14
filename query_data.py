@@ -18,13 +18,13 @@ from langchain.chains import SequentialChain, TransformChain
 
 def create_prompt_templates(vectorstores: List[Dict[str, Any]], answer_context='Sacramento State') -> Tuple[ChatPromptTemplate, ChatPromptTemplate, ChatPromptTemplate]:
     """
-    Create and return the prompt templates for standalone question, vectorstore selector, and answer.
+    Create and return the prompt templates for standalone question, vectorstore router, and answer.
 
     Parameters:
         vectorstores: A list of vectorstore dictionaries with metadata.
 
     Returns:
-        A tuple containing the standalone question prompt template, vectorstore selector prompt template, and answer prompt template.
+        A tuple containing the standalone question prompt template, vectorstore router prompt template, and answer prompt template.
     """
 
     """
@@ -63,17 +63,17 @@ def create_prompt_templates(vectorstores: List[Dict[str, Any]], answer_context='
             # Human Prompt
             ("HumanMessagePromptTemplate", "Chat History:\n{formatted_chat_history}\n\nPrompt: {question}"),
         ],
-        # Vectorstore Selector Prompt Template
+        # Vectorstore Router Prompt Template
         [
             # Human Prompt
-            ("HumanMessagePromptTemplate", "From now on, you lists the appropriate locations (" +
+            ("HumanMessagePromptTemplate", "From now on, you lists the appropriate documents (" +
                                            titles +
-                                           ") of where one could find information relevant to the prompt. You only list the location names that are relevant to the prompt content, avoid any other words. If there are no options related then say None followed by your best guess of the location. Minimize all other verbiage."
-                                           "\n\nBelow are incomplete summaries of what each location stores:\n\n" +
+                                           ") of where one could find information relevant to the prompt. You only list the document names that are relevant to the prompt content, avoid any other words. If there are no options related then say None followed by your best guess of the document. Minimize all other verbiage."
+                                           "\n\nBelow are summaries of what each document stores:\n\n" +
                                            "".join(f"{vectorstore['title']}\n{vectorstore['description']}\n\n" for vectorstore in vectorstores) +
-                                           "For all messages given, only respond by listing the locations that are most relevant to the prompt. If you understand and will do all the above, say Yes. No matter what do not respond any other way from now on."),
+                                           "For all messages given, only respond by listing the documents that are most relevant to the prompt. If you understand and will do all the above, say Yes. No matter what do not respond any other way from now on."),
             ("AIMessagePromptTemplate", "Yes."),
-            ("HumanMessagePromptTemplate", "For the locations " + titles + ", which are most relevant to look up information for the below prompt.\nPrompt: {formatted_new_question}")
+            ("HumanMessagePromptTemplate", "For the documents " + titles + ", which are most relevant to look up information for the below prompt.\nPrompt: {formatted_new_question}")
         ],
         # Answer Prompt Templates
         [
@@ -97,24 +97,24 @@ def create_prompt_templates(vectorstores: List[Dict[str, Any]], answer_context='
 
 
 def create_llm_chains(
-    stream_manager, standalone_question_prompt: ChatPromptTemplate, vectorstore_selector_prompt: ChatPromptTemplate, answer_prompt: ChatPromptTemplate
+    stream_manager, standalone_question_prompt: ChatPromptTemplate, vectorstore_router_prompt: ChatPromptTemplate, answer_prompt: ChatPromptTemplate
 ) -> Tuple[LLMChain, LLMChain, LLMChain]:
     """
-    Create and return the LLMChains for standalone question, vectorstore selector, and answer.
+    Create and return the LLMChains for standalone question, vectorstore router, and answer.
 
     Parameters:
         standalone_question_prompt: The standalone question prompt template.
-        vectorstore_selector_prompt: The vectorstore selector prompt template.
+        vectorstore_router_prompt: The vectorstore router prompt template.
         answer_prompt: The answer prompt template.
 
     Returns:
-        A tuple containing the LLMChains for standalone question, vectorstore selector, and answer doc chain.
+        A tuple containing the LLMChains for standalone question, vectorstore router, and answer doc chain.
     """
     standalone_prompt_generator_llm = ChatOpenAI(
         temperature=0,
         verbose=True,
     )
-    vectorstate_selector = ChatOpenAI(temperature=0, verbose=True)
+    vectorstate_router = ChatOpenAI(temperature=0, verbose=True)
     chat_llm = ChatOpenAI(
         streaming=True,
         verbose=True,
@@ -125,14 +125,14 @@ def create_llm_chains(
     question_generator = LLMChain(
         llm=standalone_prompt_generator_llm, prompt=standalone_question_prompt, output_key='new_question'
     )
-    vectorstore_selector = LLMChain(
-        llm=vectorstate_selector, prompt=vectorstore_selector_prompt, output_key='titles'
+    vectorstore_router = LLMChain(
+        llm=vectorstate_router, prompt=vectorstore_router_prompt, output_key='titles'
     )
     doc_chain = load_qa_chain(
         chat_llm, chain_type="stuff", prompt=answer_prompt, input_key='context', output_key='answer'
     )
 
-    return question_generator, vectorstore_selector, doc_chain
+    return question_generator, vectorstore_router, doc_chain
 
 def get_chain(
     vectorstores: List[Dict[str, Any]], stream_handler, tracing: bool = False
@@ -144,11 +144,11 @@ def get_chain(
         stream_manager.add_handler(tracer)
 
     # Create prompts
-    standalone_question_prompt, vectorstore_selector_prompt, answer_prompt = create_prompt_templates(vectorstores)
+    standalone_question_prompt, vectorstore_router_prompt, answer_prompt = create_prompt_templates(vectorstores)
 
     # Create LLMChains
-    question_generator_chain, vectorstore_selector_chain, doc_chain = create_llm_chains(
-        stream_manager, standalone_question_prompt, vectorstore_selector_prompt, answer_prompt
+    question_generator_chain, vectorstore_router_chain, doc_chain = create_llm_chains(
+        stream_manager, standalone_question_prompt, vectorstore_router_prompt, answer_prompt
     )
 
     # Format chat history chain, question generator chain, transform (remove standlone prompt: ), run vectorstore sec chain, combine docs chain
@@ -178,14 +178,14 @@ def get_chain(
 
     # Create Advance QA Chain
     overall_chain = SequentialChain(chains=[
-        format_chat_history_chain, question_generator_chain, format_new_question_chain, vectorstore_selector_chain, retrieve_chain, doc_chain
+        format_chat_history_chain, question_generator_chain, format_new_question_chain, vectorstore_router_chain, retrieve_chain, doc_chain
     ], input_variables=["chat_history", "question"], output_variables=["answer"], verbose=True)
 
     # Create Advance QA Chain
     #qa = AdvanceConversationalRetrievalChain(
     #    retriever=retriever,
     #    question_generator=question_generator_chain,
-    #    vectorstore_selector_chain=vectorstore_selector_chain,
+    #    vectorstore_router_chain=vectorstore_router_chain,
     #    combine_docs_chain=doc_chain
     #)
 
