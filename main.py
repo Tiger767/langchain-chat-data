@@ -21,16 +21,13 @@ async def startup_event():
     logging.info("loading vectorstore")
     global vectorstore
     vectorstore = [
-        {'vectorstore': None, 'title': 'Handbook', 'description': 'The handbook has all the rules and guidelines related to Sacramento State. It is only updated once a year. Rules for conduct on campus. Academic calendar. Policies for student organizations. Campus safety guidelines.'},
-        {'vectorstore': None, 'title': 'Website', 'description': 'The website has any general info relating to Sacramento State that likely is not in the catalog or handbook. Campus news and events. Information for prospective students. Athletics schedules and scores.'},
-        {'vectorstore': None, 'title': 'Catalog', 'description': 'The Catalog has all the class info, major info, and other degree info related to Sacramento State. List of majors and minors. Course descriptions and requirements. General education requirements. Graduation requirements.'},
+        {'vectorstore': None, 'title': 'Codebase', 'description': 'The Codebase has all the local code and documentation. It has custom modules, classes, objects, packages, functions, control structures, error handling, libraries, unit tests, docstrings, config files, and generally code.'},
+        {'vectorstore': None, 'title': 'Documentation', 'description': 'The Documentation has all the external package explanations, examples, tutorials, api references, source code, FAQ, community posts, blogs, and more. Pytorch. Neural Network. NN. Math operations.'},
     ]
-    with open("vectorstore_csus_handbook.pkl", "rb") as f:
+    with open("vectorstore_codebase.pkl", "rb") as f:
         vectorstore[0]['vectorstore'] = pickle.load(f)
-    with open("vectorstore_csus_website.pkl", "rb") as f:
+    with open("vectorstore_documentation.pkl", "rb") as f:
         vectorstore[1]['vectorstore'] = pickle.load(f)
-    with open("vectorstore_csus_catalog.pkl", "rb") as f:
-        vectorstore[2]['vectorstore'] = pickle.load(f)
 
 @app.get("/")
 async def get(request: Request):

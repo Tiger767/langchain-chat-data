@@ -14,7 +14,7 @@ from conversational_retrievel_chain import AdvanceConversationalRetrievalChain
 from retriever import VectorStoresRetriever
 
 
-def create_prompt_templates(vectorstores: List[Dict[str, Any]], answer_context='Sacramento State') -> Tuple[ChatPromptTemplate, ChatPromptTemplate, ChatPromptTemplate]:
+def create_prompt_templates(vectorstores: List[Dict[str, Any]], answer_context='python programming') -> Tuple[ChatPromptTemplate, ChatPromptTemplate, ChatPromptTemplate]:
     """
     Create and return the prompt templates for standalone question, vectorstore selector, and answer.
 
